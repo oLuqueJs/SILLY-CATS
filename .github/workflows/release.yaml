@@ -60,6 +60,9 @@ jobs:
     permissions:
       contents: read
       packages: write
+
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
     
     steps:
       - name: Checkout repository
@@ -79,6 +82,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -107,7 +111,7 @@ jobs:
         with:
           repository: oLuqueJs/SILLY-CATS-GITOPS
           ref: main
-          token: {{ secrets.GITOPS_TOKEN }}
+          token: ${{ secrets.GITOPS_TOKEN }}
           path: gitops
       
       - name: Update image tag and digest
