@@ -1,5 +1,12 @@
-.git
+.git/
+.github/
 .gitignore
+
+docs/
+README.md
+.releaserc.json
+
 .DS_Store
-.idea
-.vscode
+.idea/
+.vscode/
+*.iml

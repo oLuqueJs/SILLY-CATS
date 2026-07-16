@@ -6,6 +6,7 @@ on:
       - main
     paths-ignore:
       - README.md
+      - 'docs/**'
 
 concurrency:
   group: release
@@ -87,4 +88,79 @@ jobs:
           cache-to: type=gha,mode=max
           tags: |
             ghcr.io/oluquejs/silly-cats:${{ needs.release.outputs.version }}
-            ghcr.io/oluquejs/silly-cats:latest 
+            ghcr.io/oluquejs/silly-cats:latest
+
+  update-gitops:
+    name: Update GitOps image reference 
+    needs:
+      - release
+      - publish
+
+    runs-on: ubuntu-24.04
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout GitOps repository
+        uses: actions/checkout@v6
+        with:
+          repository: oLuqueJs/SILLY-CATS-GITOPS
+          ref: main
+          token: {{ secrets.GITOPS_TOKEN }}
+          path: gitops
+      
+      - name: Update image tag and digest
+        working-directory: gitops
+        env:
+          VERSION: ${{ needs.release.outputs.version }}
+          DIGEST: ${{ needs.publish.outputs.digest }}
+        run: |
+          test -n "$VERSION"
+          test -n "$DIGEST"
+
+          sed -i -E \
+            "s|^appVersion: \".*\"|appVersion: \"${VERSION}\"|" \
+            charts/silly-cats/Chart.yaml
+
+          sed -i -E \
+            "s|^  tag: \".*\"|  tag: \"${VERSION}\"|" \
+            charts/silly-cats/values.yaml
+
+          sed -i -E \
+            "s|^  digest: \".*\"|  digest: \"${DIGEST}\"|" \
+            charts/silly-cats/values-dev.yaml \
+            charts/silly-cats/values-prod.yaml
+
+      - name: Validate GitOps changes
+        working-directory: gitops
+        run: |
+          git diff --check
+
+          helm lint charts/silly-cats \
+            -f charts/silly-cats/values-dev.yaml
+
+          helm lint charts/silly-cats \
+            -f charts/silly-cats/values-prod.yaml
+
+      - name: Create GitOps pull request
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITOPS_TOKEN }}
+          path: gitops
+          base: main
+          branch: chore/silly-cats-${{ needs.release.outputs.version }}
+          delete-branch: true
+          commit-message: "chore(silly-cats): update image to ${{ needs.release.outputs.version }}"
+          title: "chore(silly-cats): update image to ${{ needs.release.outputs.version }}"
+          body: |
+            Automatic update of the Silly Cats image version.
+
+            - Tag: `${{ needs.release.outputs.version }}`
+            - Digest: `${{ needs.publish.outputs.digest }}`
+          
+          add-paths: |
+            charts/silly-cats/Chart.yaml
+            charts/silly-cats/values.yaml
+            charts/silly-cats/values-dev.yaml
+            charts/silly-cats/values-prod.yaml
