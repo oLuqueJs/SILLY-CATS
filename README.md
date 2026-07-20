@@ -1,20 +1,38 @@
-# Silly Cats
+# SILLY CATS
 
+[![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](#)
+[![NGINX](https://img.shields.io/badge/NGINX-009639?style=for-the-badge&logo=nginx&logoColor=white)](#)
+[![semantic-release](https://img.shields.io/badge/semantic--release-494949?style=for-the-badge&logo=semanticrelease&logoColor=white)](#)
+[![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)](#)
 
-
-A static frontend application for silly cats, packaged as a multi-platform container image and served by an unprivileged Nginx runtime.
+A static frontend application that displays random silly cats, packaged as a
+multi-platform Docker image and served by an unprivileged Nginx runtime.
 
 ## Overview
 
-This repository owns:
+This repository manages:
 
-- the frontend source code
-- the container image definition
-- the Nginx runtime configuration
-- automated versioning and releases
-- container image publishing to GitHub Container Registry
+- Static HTML, CSS and JavaScript source code
+- Images and audio assets
+- Unprivileged Nginx runtime configuration
+- Multi-platform Docker image
+- Automated semantic versioning
+- GitHub Releases
+- Container image publishing to GitHub Container Registry
+- Automatic GitOps update pull requests
 
-Kubernetes manifests, Helm charts and Argo CD configuration are maintained separately in a GitOps repository.
+Kubernetes manifests, Helm charts and Argo CD configuration are maintained in
+the [Silly Cats GitOps repository](https://github.com/oLuqueJs/SILLY-CATS-GITOPS).
+
+## Environments
+
+| Environment | URL |
+|---|---|
+| Production | `https://desafio.bonam.cc/` |
+| Development | `https://desafio.bonam.cc/dev/` |
+
+The environment configuration and deployed image digests are managed by the
+GitOps repository.
 
 ## Run with Docker
 
@@ -32,15 +50,15 @@ Open:
 http://localhost:8080
 ```
 
-For reproducible environments, use a versioned tag instead of `latest`:
+For a reproducible local environment, use a versioned tag:
 
 ```bash
 docker run --rm \
   -p 127.0.0.1:8080:8080 \
-  ghcr.io/oluquejs/silly-cats:1.0.0
+  ghcr.io/oluquejs/silly-cats:1.1.0
 ```
 
-## Build locally
+## Build Locally
 
 Clone the repository:
 
@@ -49,75 +67,98 @@ git clone https://github.com/oLuqueJs/SILLY-CATS.git
 cd SILLY-CATS
 ```
 
-Build and run the image:
+Build the image:
 
 ```bash
 docker build -t silly-cats:local .
+```
 
+Run the local image:
+
+```bash
 docker run --rm \
   -p 127.0.0.1:8080:8080 \
   silly-cats:local
 ```
 
-## Container image
+Open:
 
-Published images are available at:
+```text
+http://localhost:8080
+```
+
+## Container Image
+
+The public container image is available at:
 
 ```text
 ghcr.io/oluquejs/silly-cats
 ```
 
-| Property | Value |
-|---|---|
-| Registry | GitHub Container Registry |
-| Platforms | `linux/amd64`, `linux/arm64` |
-| Container port | `8080` |
-| Runtime | Unprivileged Nginx |
-| Versioning | Semantic Versioning |
-| Visibility | Public |
+The release workflow publishes images for:
 
-### Image tags
+- `linux/amd64`
+- `linux/arm64`
 
-| Tag | Purpose |
-|---|---|
-| `1.0.0` | Versioned and reproducible release |
-| `latest` | Most recently published release |
+The container listens on port `8080` and runs using an unprivileged Nginx
+runtime.
 
-Versioned tags should be used by GitOps and production-like environments. The `latest` tag is mutable and intended only for convenience.
+## Release and Delivery Flow
 
-## Release model
+Changes merged into the `main` branch are analyzed by semantic-release.
 
-Changes merged into `main` are analyzed by Semantic Release.
+When a new version is created, GitHub Actions:
 
-- `fix`: creates a patch release
-- `feat`: creates a minor release
-- `BREAKING CHANGE`: creates a major release
+1. Creates a semantic version and GitHub Release.
+2. Builds the Docker image.
+3. Publishes versioned and `latest` tags to GHCR.
+4. Captures the immutable image digest.
+5. Updates the image tag and digest in the GitOps repository.
+6. Opens an automatic GitOps pull request.
+7. Waits for the GitOps pull request to be reviewed and merged.
+8. Allows Argo CD to deploy the new version.
 
-A successful release creates:
+Publishing a container image does not deploy it directly.
 
-- a Git tag in the `vX.Y.Z` format
-- a GitHub Release
-- `linux/amd64` and `linux/arm64` container images
-- `X.Y.Z` and `latest` image tags in GHCR
-- build provenance metadata
+The deployment happens only after the GitOps pull request is reviewed and
+merged.
 
-See [Delivery and release](docs/delivery.md) for the complete flow.
+## Repository Structure
 
-## Repository boundaries
+- `index.html`: application entry point
+- `css/`: application styles
+- `js/`: application behavior
+- `images/`: cat images
+- `assets/`: audio and additional static assets
+- `nginx.conf`: unprivileged Nginx server configuration
+- `Dockerfile`: container image definition
+- `.releaserc.json`: semantic-release configuration
+- `.github/workflows/release.yaml`: release, image publishing and GitOps update workflow
+
+## Repository Boundaries
 
 This repository owns:
 
-- application source code
-- container image definition
-- release automation
-- container image publishing
+- Application source code
+- Static assets
+- Nginx configuration
+- Container image definition
+- Release automation
+- Container image publishing
 
-Kubernetes deployments are maintained in the
-[SILLY-CATS-GITOPS](https://github.com/oLuqueJs/SILLY-CATS-GITOPS) repository, which owns:
+The GitOps repository owns:
 
 - Helm charts
-- environment-specific values
 - Kubernetes resources
-- deployed image tag and digest references
+- Environment-specific values
+- Container image tag and digest references
+- Argo CD Applications
+- Ingress and TLS configuration
 
-Argo CD applications will also be maintained there.
+## Security
+
+Secrets, tokens, credentials and private keys must never be committed to this
+repository.
+
+The `GITOPS_TOKEN` used by GitHub Actions must be stored as a GitHub Actions
+Secret.
