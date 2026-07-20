@@ -128,7 +128,7 @@ function reloadFunction()
 
         do
         {
-            randomImgNumber = randomImgFunction(10);
+            randomImgNumber = randomImgFunction(19);
         } while (lastImage === randomImgNumber);
 
         lastImage = randomImgNumber;
